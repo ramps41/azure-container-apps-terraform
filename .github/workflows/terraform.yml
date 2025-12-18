@@ -19,15 +19,16 @@ env:
   TF_IN_AUTOMATION: "true"
   ARM_USE_OIDC: "true"
   ARM_STORAGE_USE_AZUREAD: "true"
-  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
 jobs:
   plan_dev:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     environment: dev
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -42,12 +43,16 @@ jobs:
       - run: terraform fmt -check
       - run: terraform init -backend-config=backend/dev.hcl
       - run: terraform validate
-      - run: terraform plan -out=tfplan
+      - run: terraform plan -var-file=environments/dev.tfvars -out=tfplan
 
   apply_dev:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: dev
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -60,4 +65,4 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
 
       - run: terraform init -backend-config=backend/dev.hcl
-      - run: terraform apply -auto-approve
+      - run: terraform apply -auto-approve -var-file=environments/dev.tfvars
