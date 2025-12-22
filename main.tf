@@ -1,1 +1,4 @@
-# Resources will be added incrementally (RG -> Log Analytics -> Container Apps Env -> Container App)
+resource "azurerm_resource_group" "rg" {
+  name     = "${local.name_prefix}-rg"
+  location = var.location
+}
