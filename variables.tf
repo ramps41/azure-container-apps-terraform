@@ -1,15 +1,15 @@
-variable "environment" {
-  description = "Environment name (dev/prod)"
+variable "deployment_environment" {
+  description = "Deployment environment name (dev/prod)"
   type        = string
 }
 
-variable "location" {
-  description = "Azure region"
+variable "deployment_location" {
+  description = "Primary Azure region for the deployment"
   type        = string
 }
 
-variable "resource_name_prefix" {
-  description = "Prefix for resource naming"
+variable "application_name_prefix" {
+  description = "Prefix applied to all application resources"
   type        = string
 }
 
