@@ -30,20 +30,52 @@ jobs:
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: azure/login@v2
+      - name: Azure login
+        uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-      - run: terraform fmt -check
-      - run: terraform init -backend-config=backend/dev.hcl
-      - run: terraform validate
-      - run: terraform plan -var-file=environments/dev.tfvars -out=tfplan
+      - name: Terraform fmt
+        id: fmt
+        run: terraform fmt -check
+      - name: Terraform init
+        id: init
+        run: terraform init -backend-config=backend/dev.hcl
+      - name: Terraform validate
+        id: validate
+        run: terraform validate
+      - name: Terraform plan
+        id: plan
+        run: |
+          set -o pipefail
+          terraform plan -var-file=environments/dev.tfvars -out=tfplan -no-color | tee terraform-plan.txt
+      - name: Comment plan on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('terraform-plan.txt', 'utf8');
+            const body = [
+              '## Terraform Plan',
+              '',
+              '```',
+              plan,
+              '```'
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body
+            });
 
   apply_dev:
     if: github.event_name == 'push'
@@ -54,15 +86,22 @@ jobs:
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: azure/login@v2
+      - name: Azure login
+        uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-      - run: terraform init -backend-config=backend/dev.hcl
-      - run: terraform apply -auto-approve -var-file=environments/dev.tfvars
+      - name: Terraform init
+        id: init_apply
+        run: terraform init -backend-config=backend/dev.hcl
+      - name: Terraform apply
+        id: apply
+        run: terraform apply -auto-approve -var-file=environments/dev.tfvars
